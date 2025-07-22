@@ -1,6 +1,11 @@
 import requests
+import json
 from typing import Any, Dict, Optional
 import time
+from logger_config import setup_logger
+
+# Get loggers
+console_log, file_log = setup_logger()
 
 class LibreCGMClient:
     """
@@ -9,7 +14,7 @@ class LibreCGMClient:
 
     DEFAULT_HEADERS = {
         "version": "4.7",
-        "product": "llu.android"
+        "product": "llu.ios"
     }
 
     def __init__(self, email: str, password: str, 
@@ -33,6 +38,47 @@ class LibreCGMClient:
         self.auth_ticket: Optional[Dict[str, Any]] = None
         self.timeout = 30  # seconds
 
+    def _log_request(self, method: str, url: str, headers: Dict[str, str], data: Any = None) -> None:
+        """Log HTTP request details"""
+        masked_headers = headers.copy()
+        if 'Authorization' in masked_headers:
+            masked_headers['Authorization'] = 'Bearer ****'
+            
+        masked_data = data
+        if isinstance(data, dict) and ('password' in data or 'email' in data):
+            masked_data = data.copy()
+            if 'password' in masked_data:
+                masked_data['password'] = '****'
+            if 'email' in masked_data:
+                email = masked_data['email']
+                masked_data['email'] = f"{email[:3]}...{email[-8:]}"
+        
+        http_data = {
+            'request': {
+                'method': method,
+                'url': url,
+                'headers': masked_headers,
+                'body': masked_data
+            }
+        }
+        file_log.debug("Making HTTP request", extra={'http_data': http_data})
+    
+    def _log_response(self, response: requests.Response) -> None:
+        """Log HTTP response details"""
+        try:
+            response_body = response.json()
+        except ValueError:
+            response_body = response.text
+            
+        http_data = {
+            'response': {
+                'status_code': response.status_code,
+                'headers': dict(response.headers),
+                'body': response_body
+            }
+        }
+        file_log.debug("Received HTTP response", extra={'http_data': http_data})
+
     def authenticate(self) -> Dict[str, Any]:
         """
         Authenticate with the LibreView API.
@@ -50,12 +96,17 @@ class LibreCGMClient:
             "email": self.email,
             "password": self.password
         }
+        
+        self._log_request('POST', url, self.DEFAULT_HEADERS, payload)
+        
         response = requests.post(
             url, 
             json=payload, 
             headers=self.DEFAULT_HEADERS,
             timeout=self.timeout
         )
+        
+        self._log_response(response)
         response.raise_for_status()
         data = response.json()
         
@@ -78,14 +129,20 @@ class LibreCGMClient:
     def accept_terms(self) -> Dict[str, Any]:
         """Accept Terms of Use when required."""
         url = f"{self.base_url}/auth/continue/tou"
+        headers = {
+            **self.DEFAULT_HEADERS,
+            "Authorization": f"Bearer {self.auth_ticket['token']}"
+        }
+        
+        self._log_request('POST', url, headers)
+        
         response = requests.post(
             url,
-            headers={
-                **self.DEFAULT_HEADERS,
-                "Authorization": f"Bearer {self.auth_ticket['token']}"
-            },
+            headers=headers,
             timeout=self.timeout
         )
+        
+        self._log_response(response)
         response.raise_for_status()
         data = response.json()
         self.auth_ticket = data['data']['authTicket']
@@ -104,28 +161,44 @@ class LibreCGMClient:
     def get_current_user(self) -> Dict[str, Any]:
         """Get the current user's profile data."""
         url = f"{self.base_url}/user"
-        resp = requests.get(url, headers=self._headers(), timeout=self.timeout)
+        headers = self._headers()
+        self._log_request('GET', url, headers)
+        
+        resp = requests.get(url, headers=headers, timeout=self.timeout)
+        self._log_response(resp)
         resp.raise_for_status()
         return resp.json()
 
     def get_account(self) -> Dict[str, Any]:
         """Get the current user's account information."""
         url = f"{self.base_url}/account"
-        resp = requests.get(url, headers=self._headers(), timeout=self.timeout)
+        headers = self._headers()
+        self._log_request('GET', url, headers)
+        
+        resp = requests.get(url, headers=headers, timeout=self.timeout)
+        self._log_response(resp)
         resp.raise_for_status()
         return resp.json()
 
     def list_connections(self) -> Dict[str, Any]:
         """List all patient connections."""
         url = f"{self.base_url}/llu/connections"
-        resp = requests.get(url, headers=self._headers(), timeout=self.timeout)
+        headers = self._headers()
+        self._log_request('GET', url, headers)
+        
+        resp = requests.get(url, headers=headers, timeout=self.timeout)
+        self._log_response(resp)
         resp.raise_for_status()
         return resp.json()
 
     def get_patient_graph(self, patient_id: str) -> Dict[str, Any]:
         """Get glucose graph data for a patient."""
         url = f"{self.base_url}/llu/connections/{patient_id}/graph"
-        resp = requests.get(url, headers=self._headers(), timeout=self.timeout)
+        headers = self._headers()
+        self._log_request('GET', url, headers)
+        
+        resp = requests.get(url, headers=headers, timeout=self.timeout)
+        self._log_response(resp)
         resp.raise_for_status()
         return resp.json()
 

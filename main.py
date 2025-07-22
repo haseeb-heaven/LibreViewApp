@@ -4,7 +4,7 @@ import sys
 import time
 import json
 from typing import Dict, Any, Optional
-from client_new import LibreCGMClient
+from client import LibreCGMClient
 from logger_config import setup_logger
 
 # Set up loggers
@@ -110,7 +110,12 @@ def display_connections(connections_data: Dict[str, Any]) -> None:
 def display_glucose_data(graph_data: Dict[str, Any], patient_id: str) -> None:
     """Display glucose readings from graph data."""
     print(f"\n=== Glucose Readings for Patient {patient_id} ===")
+    
+    # Log the full response structure for debugging
+    file_log.debug(f"Full graph data response for patient {patient_id}:\n{json.dumps(log_sensitive_data(graph_data), indent=2)}")
+    
     data = graph_data.get('data', {})
+    file_log.debug(f"Data object structure:\n{json.dumps(data, indent=2)}")
     
     # Display connection info
     connection = data.get('connection', {})
@@ -200,7 +205,7 @@ def main():
             connections = connections_data.get('data', [])
             if connections:
                 for connection in connections:
-                    patient_id = connection.get('id')
+                    patient_id = connection.get('patientId')
                     if patient_id:
                         print(f"\nFetching glucose data for patient {patient_id}...")
                         start_time = time.time()
