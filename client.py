@@ -12,14 +12,36 @@ class LibreCGMClient:
     Client implementation for the LibreView API according to OpenAPI specification.
     """
 
-    DEFAULT_HEADERS = {
-        "version": "4.7",
-        "product": "llu.ios"
-    }
-
     def __init__(self, email: str, password: str, 
                  base_url: str = "https://libreview-proxy.onrender.com",
-                 region: str = "us"):
+                 region: str = "us",
+                 version: str = "4.7",
+                 product: str = "llu.ios"):
+        """
+        Initialize the LibreView client.
+        
+        Args:
+            email: User's email address
+            password: User's password
+            base_url: Base URL for the API (default: libreview-proxy)
+            region: Region code (default: us)
+            version: API version to use (default: 4.7)
+            product: Product identifier (default: llu.ios)
+        """
+        self.base_url = base_url.rstrip('/')
+        if region:
+            self.base_url = f"{self.base_url}/{region}"
+        self.email = email
+        self.password = password
+        self.token: Optional[str] = None
+        self.auth_ticket: Optional[Dict[str, Any]] = None
+        self.timeout = 30  # seconds
+        
+        # Set default headers with provided or default values
+        self.DEFAULT_HEADERS = {
+            "version": version,
+            "product": product
+        }
         """
         Initialize the LibreView client.
         
@@ -205,14 +227,22 @@ class LibreCGMClient:
     def get_patient_logbook(self, patient_id: str) -> Dict[str, Any]:
         """Get logbook entries for a patient."""
         url = f"{self.base_url}/llu/connections/{patient_id}/logbook"
-        resp = requests.get(url, headers=self._headers(), timeout=self.timeout)
+        headers = self._headers()
+        self._log_request('GET', url, headers)
+        
+        resp = requests.get(url, headers=headers, timeout=self.timeout)
+        self._log_response(resp)
         resp.raise_for_status()
         return resp.json()
 
     def get_notification_settings(self, connection_id: str) -> Dict[str, Any]:
         """Get notification settings for a connection."""
         url = f"{self.base_url}/llu/notifications/settings/{connection_id}"
-        resp = requests.get(url, headers=self._headers(), timeout=self.timeout)
+        headers = self._headers()
+        self._log_request('GET', url, headers)
+        
+        resp = requests.get(url, headers=headers, timeout=self.timeout)
+        self._log_response(resp)
         resp.raise_for_status()
         return resp.json()
 
@@ -220,11 +250,14 @@ class LibreCGMClient:
         """Get configuration for a specific country."""
         url = f"{self.base_url}/llu/config/country"
         params = {"country": country_code}
+        self._log_request('GET', url, self.DEFAULT_HEADERS)
+        
         resp = requests.get(
             url,
             headers=self.DEFAULT_HEADERS,
             params=params,
             timeout=self.timeout
         )
+        self._log_response(resp)
         resp.raise_for_status()
         return resp.json()

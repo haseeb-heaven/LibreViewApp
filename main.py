@@ -32,10 +32,10 @@ def load_environment() -> tuple[str, str]:
     """Load credentials from .env file."""
     file_log.debug("Loading environment variables from .env file")
     load_dotenv()
-    
-    email = os.getenv("EMAIL")
-    password = os.getenv("PASSWORD")
-    
+
+    email = os.getenv("LIBRE_EMAIL")
+    password = os.getenv("LIBRE_PASSWORD")
+
     if not email or not password:
         error_msg = "Error: EMAIL and PASSWORD must be set in .env file"
         file_log.error(error_msg)
@@ -133,7 +133,7 @@ def display_glucose_data(graph_data: Dict[str, Any], patient_id: str) -> None:
     readings = data.get('graphData', [])
     if readings:
         print("\nRecent Readings:")
-        for reading in readings[:5]:  # Show last 5 readings
+        for reading in readings:  # Show all readings
             if reading.get('Value'):
                 print(f"Time: {reading.get('Timestamp', 'N/A')} - Value: {reading.get('Value')} {reading.get('GlucoseUnits', 'N/A')}")
     print("=" * 30)
@@ -154,10 +154,15 @@ def main():
         console_log.info(f"✓ Environment variables loaded ({duration:.2f}s)")
         file_log.debug(f"Environment variables loaded in {duration:.2f}s")
         
-        # Initialize client
+        # Initialize client with configuration
         console_log.info("\nInitializing client...")
         start_time = time.time()
-        client = LibreCGMClient(email=email, password=password)
+        client = LibreCGMClient(
+            email=email,
+            password=password,
+            version=os.getenv("LIBRE_VERSION", "4.7"),
+            product="llu." + os.getenv("LIBRE_PRODUCT", "ios")
+        )
         duration = time.time() - start_time
         console_log.info(f"✓ Client initialized ({duration:.2f}s)")
         file_log.debug(f"Client initialized with email: {email[:3]}...{email[-8:]} in {duration:.2f}s")

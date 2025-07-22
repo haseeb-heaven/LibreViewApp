@@ -40,10 +40,20 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. Create a `.env` file with your credentials:
+3. Copy the example environment file and configure it:
 ```bash
-EMAIL=your.email@example.com
-PASSWORD=your_password
+cp .env.example .env
+```
+
+Then edit the `.env` file with your credentials:
+```bash
+# Required credentials
+LIBRE_EMAIL=your.email@example.com      # Your LibreView account email
+LIBRE_PASSWORD=your_password            # Your LibreView account password
+
+# Optional API configuration (defaults shown)
+LIBRE_VERSION=4.7                       # API version to use (default: 4.7)
+LIBRE_PRODUCT=ios                       # Product type (ios or android, default: ios)
 ```
 
 4. Install dependencies:
