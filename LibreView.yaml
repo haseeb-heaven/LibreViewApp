@@ -1,5 +1,22 @@
 openapi: 3.0.1
-x-stoplight:
+x-stoservers:
+  - url: 'https://libreview-proxy.onrender.com/{region}'
+    description: LibreView Proxy Server
+    variables:
+      region:
+        default: us
+        enum:
+          - us   # United States
+          - eu   # Europe
+          - au   # Australia
+          - ae   # United Arab Emirates
+          - ap   # Asia Pacific
+          - ca   # Canada
+          - de   # Germany
+          - fr   # France
+          - jp   # Japan
+          - eu2  # Europe 2
+        description: Regional API endpoint to use. Default is 'us'.
   id: 5e6m44bnx0m4p
 info:
   title: LibreView Unofficial
@@ -19,16 +36,12 @@ externalDocs:
   url: 'https://libreview-unofficial.stoplight.io/'
   description: Stoplight documentation
 servers:
-  - url: 'https://api.libreview.io'
-    description: Live Server
-  - url: 'https://api-{region}.libreview.io'
-    description: Live Regional Server
+  - url: 'https://libreview-proxy.onrender.com/{region}'
+    description: Proxy Regional Server
     variables:
       region:
         default: us
-        description: Regional API to use.
-  - url: 'https://libreview-proxy.onrender.com/{region}'
-    description: Proxy Regional Server
+        description: Regional API to use (us, eu, au, etc).
     variables:
       region:
         default: us
@@ -282,8 +295,8 @@ components:
       required: true
       schema:
         type: string
-        example: llu.android
-        default: llu.android
+        example: llu.ios
+        default: llu.ios
       description: The LibreLinkUp product identifier to match.
   securitySchemes:
     token:
