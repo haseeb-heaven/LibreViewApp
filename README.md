@@ -2,6 +2,16 @@
 
 A Python client application for interacting with the LibreView CGM API. This application uses the unofficial LibreView API documentation available at [LibreView Unofficial API](https://libreview-unofficial.stoplight.io/).
 
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+## Repository Structure
+
+This repository maintains two main branches:
+- `develop` - Development branch for active development and new features
+- `main` - Stable release branch for production deployments
+
+All development work should be done in feature branches branched from `develop` and merged back via pull requests.
+
 ## Features
 
 - Authentication with LibreView API with regional support
@@ -20,8 +30,8 @@ A Python client application for interacting with the LibreView CGM API. This app
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd LibreApp
+git clone https://github.com/haseeb-heaven/LibreViewApp.git
+cd LibreViewApp
 ```
 
 2. Create a virtual environment (recommended):
@@ -70,6 +80,18 @@ This application uses the unofficial LibreView API as documented at [libreview-u
 - Real-time CGM data access
 
 Note: This is a community-driven, unofficial implementation and is not affiliated with Abbott Diabetes Care, Inc.
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch from `develop`: `git checkout -b feature/your-feature-name`
+3. Commit your changes: `git commit -am 'Add some feature'`
+4. Push to the branch: `git push origin feature/your-feature-name`
+5. Submit a pull request to the `develop` branch
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
