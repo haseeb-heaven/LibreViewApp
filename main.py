@@ -3,7 +3,7 @@ import os
 import sys
 import time
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from client import LibreCGMClient, ApiConfig
 from logger_config import setup_logger
 

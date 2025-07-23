@@ -6,10 +6,7 @@ It follows medical technology standards for data handling and security.
 """
 
 import requests
-import json
 from typing import Any, Dict, Optional, Protocol
-from abc import ABC, abstractmethod
-import time
 from logger_config import setup_logger
 from dataclasses import dataclass
 
