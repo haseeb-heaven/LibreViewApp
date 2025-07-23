@@ -295,7 +295,7 @@ components:
       required: true
       schema:
         type: string
-        example: llu.ios
+        example: llu.android
         default: llu.ios
       description: The LibreLinkUp product identifier to match.
   securitySchemes:
