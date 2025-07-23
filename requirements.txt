@@ -1,2 +1,6 @@
 requests>=2.31.0
 python-dotenv>=1.0.0
+typing-extensions>=4.7.1  # For Python <3.8 compatibility
+black>=23.7.0            # For code formatting
+pytest>=7.4.0            # For testing
+mypy>=1.4.1             # For type checking

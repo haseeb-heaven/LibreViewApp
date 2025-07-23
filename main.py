@@ -4,7 +4,7 @@ import sys
 import time
 import json
 from typing import Dict, Any, Optional
-from client import LibreCGMClient
+from client import LibreCGMClient, ApiConfig
 from logger_config import setup_logger
 
 # Set up loggers
@@ -157,11 +157,14 @@ def main():
         # Initialize client with configuration
         console_log.info("\nInitializing client...")
         start_time = time.time()
+        config = ApiConfig(
+            version=os.getenv("LIBRE_VERSION", "4.7"),
+            product="llu." + os.getenv("LIBRE_PRODUCT", "ios")
+        )
         client = LibreCGMClient(
             email=email,
             password=password,
-            version=os.getenv("LIBRE_VERSION", "4.7"),
-            product="llu." + os.getenv("LIBRE_PRODUCT", "ios")
+            config=config
         )
         duration = time.time() - start_time
         console_log.info(f"✓ Client initialized ({duration:.2f}s)")
@@ -241,6 +244,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception as exception:
-        file_log.critical(f"Unhandled exception: {str(exception)}", exc_info=True)
+    except Exception as error:
+        file_log.critical(f"Unhandled exception: {str(error)}", exc_info=True)
         raise
