@@ -235,6 +235,19 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 ## Changelog
 
+### Version 1.0.1 (2025-07-23)
+
+API and Code Quality Update:
+- Refactored codebase to follow SOLID principles
+- Added dependency injection with ApiConfig class
+- Implemented Protocol-based interfaces for better modularity
+- Enhanced error handling with detailed error messages
+- Updated OpenAPI specification with improved examples
+- Added comprehensive type hints and documentation
+- Improved logging system with better data masking
+- Added requirements.txt with development dependencies
+- Created .env.example for better configuration management
+
 ### Version 1.0.0 (2025-07-23)
 
 Initial release with following features:
