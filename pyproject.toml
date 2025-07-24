@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libreapp"
+version = "1.1.0"
+authors = [
+    {name = "Haseeb Mir", email = "haseebmir.hm@gmail.com"},
+]
+description = "A professional-grade Python library for interfacing with LibreView CGM systems"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "requests>=2.32.4",
+    "python-dotenv>=1.1.1",
+]
