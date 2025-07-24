@@ -1,43 +1,28 @@
+"""Example usage of the LibreView client."""
+
 from dotenv import load_dotenv
 import os
 import sys
 import time
 import json
-from typing import Dict, Any
-from client import LibreCGMClient, ApiConfig
-from logger_config import setup_logger
+from typing import Dict, Any, Optional
+from libreapp.clients.libre_view import LibreCGMClient, ApiConfig
+from libreapp.utils.data_masking import DefaultDataMasker
+from libreapp.utils.logger import setup_logger
 
 # Set up loggers
 console_log, file_log = setup_logger()
-
-def log_sensitive_data(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Mask sensitive data before logging."""
-    if not isinstance(data, dict):
-        return data
-        
-    masked_data = data.copy()
-    sensitive_fields = ['token', 'email', 'password', 'firstName', 'lastName', 'Authorization']
-    
-    for key, value in masked_data.items():
-        if key in sensitive_fields and value:
-            masked_data[key] = f"{value[:4]}...{value[-4:]}" if len(str(value)) > 8 else "****"
-        elif isinstance(value, dict):
-            masked_data[key] = log_sensitive_data(value)
-        elif isinstance(value, list):
-            masked_data[key] = [log_sensitive_data(item) if isinstance(item, dict) else item for item in value]
-            
-    return masked_data
 
 def load_environment() -> tuple[str, str]:
     """Load credentials from .env file."""
     file_log.debug("Loading environment variables from .env file")
     load_dotenv()
 
-    email = os.getenv("LIBRE_EMAIL")
+    email = os.getenv("LIBRE_USERNAME")
     password = os.getenv("LIBRE_PASSWORD")
 
     if not email or not password:
-        error_msg = "Error: EMAIL and PASSWORD must be set in .env file"
+        error_msg = "Error: LIBRE_USERNAME and LIBRE_PASSWORD must be set in .env file"
         file_log.error(error_msg)
         console_log.error(error_msg)
         sys.exit(1)
@@ -51,7 +36,8 @@ def display_auth_info(auth_data: Dict[str, Any]) -> None:
     console_log.info(f"\n{section}")
     
     # Log full auth data to file (with sensitive data masked)
-    file_log.debug(f"Full auth response: {json.dumps(log_sensitive_data(auth_data), indent=2)}")
+    data_masker = DefaultDataMasker()
+    file_log.debug(f"Full auth response: {json.dumps(data_masker.mask_sensitive_data(auth_data), indent=2)}")
     
     if auth_data.get('status') == 0:  # Success
         console_log.info("✓ Authentication successful")
@@ -112,7 +98,8 @@ def display_glucose_data(graph_data: Dict[str, Any], patient_id: str) -> None:
     print(f"\n=== Glucose Readings for Patient {patient_id} ===")
     
     # Log the full response structure for debugging
-    file_log.debug(f"Full graph data response for patient {patient_id}:\n{json.dumps(log_sensitive_data(graph_data), indent=2)}")
+    data_masker = DefaultDataMasker()
+    file_log.debug(f"Full graph data response for patient {patient_id}:\n{json.dumps(data_masker.mask_sensitive_data(graph_data), indent=2)}")
     
     data = graph_data.get('data', {})
     file_log.debug(f"Data object structure:\n{json.dumps(data, indent=2)}")
@@ -152,23 +139,22 @@ def main():
         email, password = load_environment()
         duration = time.time() - start_time
         console_log.info(f"✓ Environment variables loaded ({duration:.2f}s)")
-        file_log.debug(f"Environment variables loaded in {duration:.2f}s")
         
         # Initialize client with configuration
         console_log.info("\nInitializing client...")
         start_time = time.time()
         config = ApiConfig(
             version=os.getenv("LIBRE_VERSION", "4.7"),
-            product="llu." + os.getenv("LIBRE_PRODUCT", "ios")
+            product=os.getenv("LIBRE_PRODUCT", "llu.ios")
         )
         client = LibreCGMClient(
             email=email,
             password=password,
-            config=config
+            config=config,
+            data_masker=DefaultDataMasker()
         )
         duration = time.time() - start_time
         console_log.info(f"✓ Client initialized ({duration:.2f}s)")
-        file_log.debug(f"Client initialized with email: {email[:3]}...{email[-8:]} in {duration:.2f}s")
         
         # Authenticate
         print("\nAuthenticating with LibreView API...")

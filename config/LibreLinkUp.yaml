@@ -1,0 +1,123 @@
+openapi: 3.0.0
+info:
+  title: LibreLinkUp Sharing API
+  version: 1.0.0
+  description: >
+    Unofficial API definition for Abbott's LibreLinkUp CGM sharing service,
+    based on https://github.com/DiaKEM/libre-link-up-api-client and related docs.
+
+servers:
+  - url: https://api.libreview.io
+
+paths:
+  /llu/auth/login:
+    post:
+      summary: Login to LibreLinkUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: "user@email.com"
+                password:
+                  type: string
+                  example: "yourPassword"
+                clientVersion:
+                  type: string
+                  example: "4.9.0"
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  userId:
+                    type: string
+                  expiresIn:
+                    type: integer
+        '401':
+          description: Invalid credentials
+
+  /llu/connections:
+    get:
+      summary: List all patient connections
+      security:
+        - bearerAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: List of connections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        patientId:
+                          type: string
+                        firstName:
+                          type: string
+                        lastName:
+                          type: string
+                        # Additional properties as needed
+        '401':
+          description: Authentication required
+
+  /llu/connections/{connectionId}/graph:
+    get:
+      summary: Get CGM graph data for a connection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CGM graph data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Value:
+                          type: number
+                        isHigh:
+                          type: boolean
+                        isLow:
+                          type: boolean
+                        trend:
+                          type: string
+                        date:
+                          type: string
+                          format: date-time
+        '401':
+          description: Authentication required
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

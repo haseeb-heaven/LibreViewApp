@@ -26,24 +26,27 @@ This repository maintains two main branches:
 
 All development work should be done in feature branches branched from `develop` and merged back via pull requests.
 
-## API Features & Endpoints
+## Available Clients
 
-### Authentication
+The library provides two different client implementations for different use cases:
+
+### 1. LibreCGMClient
+For direct integration with LibreView CGM devices:
 ```python
-from client import LibreCGMClient, ApiConfig
+from libreapp import LibreCGMClient, ApiConfig
 
 # Create configuration (optional, has defaults)
 config = ApiConfig(
-    version="4.7",
-    product="ios",
+    version=os.getenv("LIBRE_VERSION", "4.7"),  # From environment or default
+    product=os.getenv("LIBRE_PRODUCT", "ios"),  # From environment or default
     region="us",
     base_url="https://libreview-proxy.onrender.com"
 )
 
 # Initialize client with configuration
 client = LibreCGMClient(
-    email="user@example.com",
-    password="****",
+    email=os.getenv("LIBRE_USERNAME"),  # From environment
+    password=os.getenv("LIBRE_PASSWORD"),  # From environment
     config=config  # Optional, will use defaults if not provided
 )
 
@@ -124,6 +127,37 @@ config = client.get_country_config(country_code)
   - Regional settings
   - Compliance rules
   - Unit preferences
+
+### 2. LibreLinkUpClient
+For integration with LibreLinkUp sharing service:
+```python
+from libreapp import LibreLinkUpClient, LibreLinkUpConfig
+
+# Create configuration
+config = LibreLinkUpConfig(
+    client_version="4.9.0",  # Optional, default shown
+    base_url="https://api.libreview.io"  # Optional
+)
+
+# Initialize client
+client = LibreLinkUpClient(
+    username="user@example.com",
+    password="****",
+    config=config  # Optional
+)
+
+# Authenticate and get data
+auth_data = client.authenticate()
+connections = client.list_connections()
+glucose_data = client.get_connection_graph(connection_id)
+```
+
+#### LibreLinkUp Features
+- **Authentication**: Secure token-based authentication
+- **Patient Connections**: List and manage patient connections
+- **Glucose Data**: Real-time and historical CGM data
+- **Connection Management**: Monitor multiple patients
+- **Trend Analysis**: Access trend data and alerts
 
 ## Technical Features
 
@@ -234,6 +268,28 @@ Note: This is a community-driven, unofficial implementation and is not affiliate
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Changelog
+
+### Version 1.1.0 (2025-07-24)
+
+Major Feature Update:
+- Added new LibreLinkUp client for sharing service integration
+- Reorganized project structure into proper Python package
+- Created shared utilities for logging and data masking
+- Added example scripts for both clients
+- Updated environment configuration for both clients
+- Improved project documentation
+- Enhanced error handling and type safety
+
+### Version 1.0.2 (2025-07-24)
+
+Project Restructuring and Environment Management:
+- Unified environment variables for both clients
+- Added proper version and product handling for LibreLinkUp client
+- Improved request header management with version and product info
+- Enhanced debugging information for API requests
+- Updated project structure with better organization
+- Added comprehensive error logging for API responses
+- Updated documentation with environment variable usage
 
 ### Version 1.0.1 (2025-07-23)
 
