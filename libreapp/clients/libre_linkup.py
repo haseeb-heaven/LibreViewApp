@@ -16,10 +16,20 @@ console_log, file_log = setup_logger()
 @dataclass
 class LibreLinkUpConfig:
     """Configuration for LibreLinkUp API"""
-    base_url: str = "https://api.libreview.io"
+    region: str = "us"  # Default region, can be 'us' or 'eu'
     client_version: str = "4.9.0"
     product: str = "llu.ios"  # Default product type
     timeout: int = 30
+
+    @property
+    def base_url(self) -> str:
+        """Get the base URL for the configured region."""
+        if self.region.lower() == "eu":
+            return "https://api-eu.libreview.io"
+        elif self.region.lower() == "us":
+            return "https://api-us.libreview.io"
+        else:
+            return "https://api.libreview.io"
 
 class LibreLinkUpClient:
     """Client implementation for the LibreLinkUp API"""
@@ -57,10 +67,15 @@ class LibreLinkUpClient:
             headers["Authorization"] = f"Bearer {self.token}"
             
         try:
-            # Log request details for debugging
-            file_log.debug(f"Request URL: {url}")
-            file_log.debug(f"Request Headers: {headers}")
-            file_log.debug(f"Request Data: {data}")
+            # Log request details for debugging with sensitive data masked
+            if self.data_masker:
+                masked_headers = self.data_masker.mask_sensitive_data(headers)
+                masked_data = self.data_masker.mask_sensitive_data(data) if data else None
+                file_log.debug(f"Request URL: {url}")
+                file_log.debug(f"Request Headers: {masked_headers}")
+                file_log.debug(f"Request Data: {masked_data}")
+            else:
+                file_log.debug("Data masking disabled - request details hidden")
 
             response = requests.request(
                 method=method,
@@ -72,10 +87,25 @@ class LibreLinkUpClient:
             
             if not response.ok:
                 file_log.error(f"Response Status: {response.status_code}")
-                file_log.error(f"Response Text: {response.text}")
+                if self.data_masker:
+                    try:
+                        response_data = response.json()
+                        masked_response = self.data_masker.mask_sensitive_data(response_data)
+                        file_log.error(f"Response Data: {masked_response}")
+                    except ValueError:
+                        file_log.error(f"Response Text: {response.text}")
+                else:
+                    file_log.error("Data masking disabled - response details hidden")
                 
             response.raise_for_status()
-            return response.json()
+            response_data = response.json()
+            
+            # Mask response data in debug logs if masker is available
+            if self.data_masker:
+                masked_response = self.data_masker.mask_sensitive_data(response_data)
+                file_log.debug(f"Response Data: {masked_response}")
+                
+            return response_data
         except requests.exceptions.RequestException as e:
             file_log.error(f"Request failed: {str(e)}")
             raise

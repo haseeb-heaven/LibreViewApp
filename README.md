@@ -154,19 +154,11 @@ glucose_data = client.get_connection_graph(connection_id)
 
 #### LibreLinkUp Features
 - **Authentication**: Secure token-based authentication
+- **Regional Support**: Both US and European server endpoints
 - **Patient Connections**: List and manage patient connections
 - **Glucose Data**: Real-time and historical CGM data
 - **Connection Management**: Monitor multiple patients
 - **Trend Analysis**: Access trend data and alerts
-
-## Technical Features
-
-### SOLID Design
-- **Single Responsibility**: Each class handles one aspect
-- **Open/Closed**: Extensible through protocols
-- **Liskov Substitution**: Proper inheritance hierarchy
-- **Interface Segregation**: Clean protocol definitions
-- **Dependency Inversion**: Dependency injection ready
 
 ### Security Features
 - Automatic token management
@@ -244,7 +236,10 @@ python main.py
 
 ## API Documentation
 
-This application uses the unofficial LibreView API as documented at [libreview-unofficial.stoplight.io](https://libreview-unofficial.stoplight.io/). The API provides:
+This application uses the unofficial LibreView API as documented at [libreview-unofficial.stoplight.io](API Docs). 
+
+And for LibreLinkUp, the API documentation is available at [https://gist.github.com/khskekec/6c13ba01b10d3018d816706a32ae8ab2](API Docs).
+The API provides:
 
 - Regional server support
 - Authentication and token management

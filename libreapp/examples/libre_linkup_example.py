@@ -12,7 +12,7 @@ from libreapp.utils.logger import setup_logger
 # Set up loggers
 console_log, file_log = setup_logger()
 
-def load_environment() -> tuple[str, str, str, str]:
+def load_environment() -> tuple[str, str, str, str, str]:
     """Load credentials from .env file."""
     file_log.debug("Loading environment variables from .env file")
     load_dotenv()
@@ -21,6 +21,7 @@ def load_environment() -> tuple[str, str, str, str]:
     password = os.getenv("LIBRE_PASSWORD")
     version = os.getenv("LIBRE_VERSION", "4.9.0")  # LibreLinkUp uses a different default version
     product = os.getenv("LIBRE_PRODUCT", "llu.ios")  # Default to iOS client
+    region = os.getenv("LIBRE_REGION", "")  # Default to None region
 
     if not username or not password:
         error_msg = "Error: LIBRE_USERNAME and LIBRE_PASSWORD must be set in .env file"
@@ -28,9 +29,16 @@ def load_environment() -> tuple[str, str, str, str]:
         console_log.error(error_msg)
         sys.exit(1)
     
-    file_log.debug(f"Loaded credentials for username: {username[:3]}...{username[-8:]}")
-    file_log.debug(f"Using version: {version}, product: {product}")
-    return username, password, version, product
+    # Mask sensitive data before logging
+    data_masker = DefaultDataMasker()
+    masked_data = data_masker.mask_sensitive_data({
+        'username': username,
+        'version': version,
+        'product': product,
+        'region': region
+    })
+    file_log.debug(f"Loaded configuration: {json.dumps(masked_data, indent=2)}")
+    return username, password, version, product, region
 
 def display_auth_info(auth_data: Dict[str, Any]) -> None:
     """Display authentication information."""
@@ -98,22 +106,32 @@ def main():
         # Load credentials
         console_log.info("Loading environment variables...")
         start_time = time.time()
-        username, password, version, product = load_environment()
+        username, password, version, product, region = load_environment()
         duration = time.time() - start_time
         console_log.info(f"✓ Environment variables loaded ({duration:.2f}s)")
         
         # Initialize client with configuration
         console_log.info("\nInitializing client...")
         start_time = time.time()
+        
+        # Create data masker for sensitive information
+        data_masker = DefaultDataMasker()
+        
+        # Create configuration with masked logging
         config = LibreLinkUpConfig(
+            region=region,
             client_version=version,
             product=product
         )
+        masked_config = data_masker.mask_sensitive_data(config.__dict__)
+        file_log.debug(f"Client configuration: {json.dumps(masked_config, indent=2)}")
+        
+        # Initialize client
         client = LibreLinkUpClient(
             username=username,
             password=password,
             config=config,
-            data_masker=DefaultDataMasker()
+            data_masker=data_masker
         )
         duration = time.time() - start_time
         console_log.info(f"✓ Client initialized ({duration:.2f}s)")
