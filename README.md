@@ -236,9 +236,9 @@ python main.py
 
 ## API Documentation
 
-This application uses the unofficial LibreView API as documented at [libreview-unofficial.stoplight.io](API Docs). 
+This application uses the unofficial LibreView API as documented at [API Docs](https://libreview-unofficial.stoplight.io)
 
-And for LibreLinkUp, the API documentation is available at [https://gist.github.com/khskekec/6c13ba01b10d3018d816706a32ae8ab2](API Docs).
+And for LibreLinkUp, the API documentation is available at [API Docs](https://gist.github.com/khskekec/6c13ba01b10d3018d816706a32ae8ab2)
 The API provides:
 
 - Regional server support
