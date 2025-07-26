@@ -1,6 +1,6 @@
-# LibreApp - Medical Technology API Library
+# LibreApp - Medical Technology API Library with AI Analytics
 
-A professional-grade Python library for interfacing with LibreView Continuous Glucose Monitoring (CGM) systems. This library is designed for medical technology integration, following industry standards for reliability, security, and data handling.
+A professional-grade Python library for interfacing with LibreView Continuous Glucose Monitoring (CGM) systems, featuring AI-powered analytics through Google's Gemini AI. This library is designed for medical technology integration, following industry standards for reliability, security, and data handling, with advanced AI capabilities for glucose data analysis.
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python Versions](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-blue)]()
@@ -10,6 +10,8 @@ A professional-grade Python library for interfacing with LibreView Continuous Gl
 
 This library is specifically designed for medical technology integration, featuring:
 
+- **AI Analytics**: Powered by Google's Gemini AI for intelligent glucose data analysis
+- **Streamlit Interface**: Interactive web application for data visualization and analysis
 - **SOLID Principles**: Clean, modular, and maintainable code architecture
 - **Security First**: Built-in sensitive data masking and secure communication
 - **Audit Logging**: Comprehensive logging for medical compliance
@@ -17,6 +19,7 @@ This library is specifically designed for medical technology integration, featur
 - **Type Safety**: Full type hints and runtime type checking
 - **API Versioning**: Support for multiple API versions
 - **Regional Compliance**: Built-in regional server support
+- **Interactive Analysis**: Real-time glucose data analysis with AI insights
 
 ## Repository Structure
 
@@ -262,7 +265,37 @@ Note: This is a community-driven, unofficial implementation and is not affiliate
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
+## Streamlit Application
+
+The library now includes a Streamlit-based web application for interactive glucose data analysis:
+
+```bash
+# Run the Streamlit app
+streamlit run libreapp/examples/libre_chat.py
+```
+
+Features:
+- Real-time glucose data visualization
+- AI-powered trend analysis using Gemini
+- Interactive data querying and analysis
+- Customizable data display options
+- Automated insights and recommendations
+- Export capabilities for reports and data
+
 ## Changelog
+
+### Version 1.2.0 (2025-07-27)
+
+AI Integration and Web Interface Update:
+- Integrated Google's Gemini AI for advanced glucose data analysis
+- Added Streamlit-based web interface for interactive data visualization
+- Implemented real-time AI analysis of glucose patterns
+- Added interactive query system for glucose data analysis
+- Enhanced data visualization with Plotly integration
+- Updated environment configuration for AI services
+- Added comprehensive AI analysis documentation
+- Improved error handling for AI services
+- Added example scripts for AI-powered analysis
 
 ### Version 1.1.0 (2025-07-24)
 
