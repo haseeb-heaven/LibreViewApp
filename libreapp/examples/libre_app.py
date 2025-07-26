@@ -4,7 +4,6 @@ Streamlit application for LibreView glucose data analysis using multiple AI mode
 """
 
 import os
-import sys
 from typing import Dict, Any, List, Optional, Tuple
 import streamlit as st
 import pandas as pd
@@ -12,7 +11,7 @@ import json
 import xml.etree.ElementTree as ET
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
+import uuid
 from dotenv import load_dotenv
 import litellm
 from libreapp.clients.libre_view import LibreCGMClient, ApiConfig
@@ -31,7 +30,7 @@ class EnvironmentLoader:
         self.file_log.debug("Loading environment variables from .env file")
         load_dotenv()
 
-        return {
+        defaults = {
             "libre_email": os.getenv("LIBREVIEW_EMAIL", ""),
             "libre_password": os.getenv("LIBREVIEW_PASSWORD", ""),
             "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
@@ -43,6 +42,11 @@ class EnvironmentLoader:
             "libre_product": os.getenv("LIBRE_PRODUCT", "llu.ios"),
             "default_model": os.getenv("DEFAULT_MODEL", "gpt-4")
         }
+        
+        # Log non-sensitive environment variables
+        non_sensitive = {k: v for k, v in defaults.items() if 'password' not in k and 'key' not in k}
+        self.file_log.debug(f"Loaded environment variables: {non_sensitive}")
+        return defaults
 
 class LibreClientManager:
     def __init__(self, email: str, password: str, version: str, product: str):
@@ -52,9 +56,14 @@ class LibreClientManager:
         self.product = product
         self.client: Optional[LibreCGMClient] = None
         self.connections: List[Dict[str, Any]] = []
+        self.session_id = str(uuid.uuid4())
+        self.file_log = file_log
 
     def connect(self) -> bool:
         try:
+            self.file_log.info(f"LibreView Connection Attempt - Session: {self.session_id}")
+            self.file_log.info(f"Connection Parameters - Version: {self.version}, Product: {self.product}")
+            
             config = ApiConfig(version=self.version, product=self.product)
             self.client = LibreCGMClient(
                 email=self.email,
@@ -63,33 +72,63 @@ class LibreClientManager:
                 data_masker=DefaultDataMasker()
             )
             
+            self.file_log.info("Attempting LibreView authentication")
             auth_data = self.client.authenticate()
+            self.file_log.info(f"Authentication response status: {auth_data.get('status')}")
+            
             if auth_data.get('status') != 0:
-                st.toast(f"Authentication failed with status: {auth_data.get('status')}", icon="❌")
-                file_log.error(f"Authentication failed with status: {auth_data.get('status')}")
+                error_msg = f"Authentication failed with status: {auth_data.get('status')}"
+                st.toast(error_msg, icon="❌")
+                self.file_log.error(error_msg)
                 return False
                 
+            self.file_log.info("Fetching connections list")
             connections_data = self.client.list_connections()
             self.connections = connections_data.get('data', [])
-            file_log.info("Successfully connected to LibreView")
+            self.file_log.info(f"Retrieved {len(self.connections)} patient connections")
+            
+            # Log connection summary (without sensitive data)
+            for i, conn in enumerate(self.connections):
+                self.file_log.info(f"Connection {i+1}: Patient ID {conn.get('patientId', 'N/A')}, "
+                                 f"Name: {conn.get('firstName', 'N/A')} {conn.get('lastName', 'N/A')}")
+            
+            self.file_log.info("Successfully connected to LibreView")
             return True
         except Exception as connection_error:
-            st.toast(f"Failed to connect to LibreView: {str(connection_error)}", icon="❌")
-            file_log.error(f"Failed to connect to LibreView: {str(connection_error)}")
+            error_msg = f"Failed to connect to LibreView: {str(connection_error)}"
+            st.toast(error_msg, icon="❌")
+            self.file_log.error(error_msg, exc_info=True)
             return False
 
     def get_patient_data(self, patient_id: str) -> Optional[List[Dict[str, Any]]]:
         try:
+            self.file_log.info(f"Fetching glucose data for patient: {patient_id}")
+            
             if not self.client:
+                self.file_log.error("Client not initialized")
                 return None
+                
+            self.file_log.info("Calling get_patient_graph API")
             graph_data = self.client.get_patient_graph(patient_id)
+            
+            # Log response structure
             data = graph_data.get('data', {})
-            return data.get('graphData', [])
+            graph_readings = data.get('graphData', [])
+            self.file_log.info(f"Retrieved {len(graph_readings)} glucose readings")
+            
+            if graph_readings:
+                first_reading = graph_readings[0] if len(graph_readings) > 0 else {}
+                last_reading = graph_readings[-1] if len(graph_readings) > 0 else {}
+                self.file_log.info(f"Data range - First: {first_reading.get('Timestamp', 'N/A')}, "
+                                 f"Last: {last_reading.get('Timestamp', 'N/A')}")
+            
+            return graph_readings
         except Exception as data_error:
-            st.toast(f"Failed to fetch glucose  {str(data_error)}", icon="❌")
-            file_log.error(f"Failed to fetch glucose data for patient {patient_id}: {str(data_error)}")
+            error_msg = f"Failed to fetch glucose data for patient {patient_id}: {str(data_error)}"
+            st.toast(error_msg, icon="❌")
+            self.file_log.error(error_msg, exc_info=True)
             return None
-
+ 
 class DataFormatter:
     @staticmethod
     def process_readings(readings: List[Dict[str, Any]], 
@@ -99,6 +138,13 @@ class DataFormatter:
         seen_timestamps = set()
         
         for reading in readings:
+            # add to logs the value of reading
+            file_log.info(f"Processing reading: {reading}")
+            
+            # Remove factory timestamp if it exists
+            if 'FactoryTimestamp' in reading:
+                del reading['FactoryTimestamp']
+                
             timestamp = reading.get('Timestamp')
             if timestamp in seen_timestamps:
                 continue
@@ -118,6 +164,10 @@ class DataFormatter:
             processed.append(reading)
         
         return processed
+
+    @staticmethod
+    def to_dataframe(readings: List[Dict[str, Any]]) -> pd.DataFrame:
+        return pd.DataFrame(readings)
 
     @staticmethod
     def to_csv(readings: List[Dict[str, Any]]) -> str:
@@ -161,7 +211,11 @@ class ChartGenerator:
         if settings.get('filter_by_range', False):
             min_val = settings.get('glucose_min', 0)
             max_val = settings.get('glucose_max', 300)
+            original_count = len(df)
             df = df[(df['Value'] >= min_val) & (df['Value'] <= max_val)]
+            file_log.info(f"Chart filtering: {original_count} → {len(df)} readings")
+        
+        file_log.info(f"Generating {chart_type} chart with {len(df)} data points")
         
         if chart_type == "line":
             fig = px.line(df, x='Timestamp', y='Value', title='Glucose Levels Over Time')
@@ -182,6 +236,7 @@ class ChartGenerator:
             pivot_df = df.pivot_table(values='Value', index='Time', columns='Date', aggfunc='mean')
             fig = px.imshow(pivot_df, title='Glucose Heatmap (Hour vs Date)')
         else:
+            file_log.warning(f"Unsupported chart type: {chart_type}")
             return None
             
         fig.update_layout(
@@ -235,6 +290,9 @@ class AIAnalyzer:
         For charts, use Plotly syntax. For tables, use markdown table format.
         """
         
+        file_log.info(f"AI Analysis Request - Model: {model}, Query: {query[:100]}...")
+        file_log.info(f"Data Summary - Readings: {len(valid_readings)}, Avg: {sum(values)/len(values):.1f}")
+        
         try:
             response = litellm.completion(
                 model=model,
@@ -242,26 +300,38 @@ class AIAnalyzer:
                 max_tokens=2000,
                 temperature=0.3
             )
-            return response.choices[0].message.content
+            result = response.choices[0].message.content
+            file_log.info(f"AI Analysis Completed - Response length: {len(result)} characters")
+            return result
         except Exception as model_error:
             error_message = f"Error analyzing data with {model}: {str(model_error)}"
-            file_log.error(error_message)
+            file_log.error(error_message, exc_info=True)
             return error_message
 
 def validate_credentials(email: str, password: str) -> Tuple[bool, str]:
+    file_log.info("Validating user credentials")
     if not email:
+        file_log.warning("Email validation failed: Email is required")
         return False, "Email is required"
     if "@" not in email:
+        file_log.warning("Email validation failed: Invalid email format")
         return False, "Invalid email format"
     if not password:
+        file_log.warning("Password validation failed: Password is required")
         return False, "Password is required"
     if len(password) < 6:
+        file_log.warning("Password validation failed: Password too short")
         return False, "Password must be at least 6 characters"
+    file_log.info("Credentials validation successful")
     return True, ""
 
 def validate_api_keys(api_keys: Dict[str, str]) -> Tuple[bool, str]:
+    file_log.info("Validating API keys")
+    # Check if at least one API key is provided
     if not any(api_keys.values()):
+        file_log.warning("API key validation failed: No API keys provided")
         return False, "At least one API key is required"
+    file_log.info("API key validation successful")
     return True, ""
 
 def show_toast(message: str, success: bool = True):
@@ -269,8 +339,10 @@ def show_toast(message: str, success: bool = True):
     st.toast(message, icon=icon)
 
 def main():
-    st.set_page_config(page_title="LibreView Glucose Analyzer", layout="wide")
-    st.title("🩸 LibreView Glucose Data Analyzer with Multi-AI")
+    st.set_page_config(page_title="Libre Glucose Medical Analyzer", layout="wide")
+    st.title("🩸 Libre Glucose Medical Analyzer")
+    
+    file_log.info("Application started")
     
     env_loader = EnvironmentLoader()
     defaults = env_loader.load_defaults()
@@ -290,8 +362,10 @@ def main():
                         'email': email,
                         'password': password
                     }
+                    file_log.info("Credentials validation successful")
                 else:
                     show_toast(message, success=False)
+                    file_log.warning(f"Credentials validation failed: {message}")
         
         with st.expander("AI Model Settings", expanded=True):
             openai_api_key = st.text_input("OpenAI API Key", value=defaults["openai_api_key"], type="password")
@@ -308,7 +382,7 @@ def main():
                 "replicate/meta/llama-2-70b-chat:02e509c789964a7ea8736978a43525956ef40397be9033abf9fd2badfe68c9e3"
             ]
             selected_model = st.selectbox(
-                "Select Default AI Model",
+                "Default AI Model",
                 options=available_models,
                 index=available_models.index(defaults["default_model"]) if defaults["default_model"] in available_models else 0
             )
@@ -333,7 +407,7 @@ def main():
             
             data_formats = ["Table", "CSV", "JSON", "XML"]
             selected_format = st.selectbox(
-                "Select Data Format",
+                "Data Format",
                 options=data_formats,
                 index=0
             )
@@ -344,7 +418,7 @@ def main():
             if enable_charts:
                 available_charts = ["line", "scatter", "bar", "histogram", "box", "area", "heatmap"]
                 selected_charts = st.multiselect(
-                    "Select Chart Types",
+                    "Chart Types",
                     options=available_charts,
                     default=["line"]
                 )
@@ -365,6 +439,7 @@ def main():
             is_valid, message = validate_api_keys(api_keys)
             if not is_valid:
                 show_toast(message, success=False)
+                file_log.warning(f"Settings save failed: {message}")
                 return
             
             st.session_state['app_settings'] = {
@@ -381,18 +456,24 @@ def main():
                 'selected_charts': selected_charts,
                 'filter_by_range': filter_by_range
             }
+            
+            # Log settings (without sensitive data)
+            safe_settings = {k: v for k, v in st.session_state['app_settings'].items() 
+                           if 'password' not in k and 'key' not in k}
+            file_log.info(f"Settings saved: {safe_settings}")
             show_toast("Settings saved successfully!")
-            file_log.info("Application settings saved")
         
         if st.button("🔄 Connect to LibreView"):
             if 'app_settings' not in st.session_state:
                 show_toast("Please save settings first!", success=False)
+                file_log.warning("Connection attempt failed: Settings not saved")
                 return
                 
             settings = st.session_state['app_settings']
             is_valid, message = validate_credentials(settings['email'], settings['password'])
             if not is_valid:
                 show_toast(message, success=False)
+                file_log.warning(f"Connection validation failed: {message}")
                 return
                 
             with st.spinner("Connecting to LibreView..."):
@@ -405,12 +486,15 @@ def main():
                 if client_manager.connect():
                     st.session_state['client_manager'] = client_manager
                     st.session_state['connections'] = client_manager.connections
+                    file_log.info("LibreView connection established successfully")
                     show_toast("Connected successfully!")
                 else:
                     show_toast("Failed to connect", success=False)
+                    file_log.error("LibreView connection failed")
     
     if 'client_manager' not in st.session_state:
         st.info("👈 Please configure your settings, save them, and connect to LibreView in the sidebar")
+        file_log.info("Waiting for user to configure settings")
         return
     
     client_manager = st.session_state['client_manager']
@@ -419,12 +503,13 @@ def main():
     
     if not connections:
         st.warning("No patient connections found")
+        file_log.warning("No patient connections available")
         return
     
     patient_names = [conn.get('firstName', 'Unknown') + " " + conn.get('lastName', 'Patient') 
                      for conn in connections]
     selected_patient_idx = st.selectbox(
-        "Select Patient",
+        "Patient",
         range(len(patient_names)),
         format_func=lambda x: patient_names[x]
     )
@@ -434,11 +519,13 @@ def main():
     
     if not patient_id:
         show_toast("Invalid patient selection", success=False)
+        file_log.error("Invalid patient selection")
         return
     
     # Fetch patient data only if not already in session or patient changed
     if ('current_patient_data' not in st.session_state or 
         st.session_state.get('current_patient_id') != patient_id):
+        file_log.info(f"Fetching new patient data for ID: {patient_id}")
         with st.spinner("Fetching glucose data..."):
             raw_readings = client_manager.get_patient_data(patient_id)
             if raw_readings:
@@ -451,17 +538,20 @@ def main():
                 st.session_state['current_patient_data'] = processed_readings
                 st.session_state['current_patient_id'] = patient_id
                 st.session_state['raw_readings'] = raw_readings
-                file_log.info(f"Fetched and cached data for patient {patient_id}")
+                file_log.info(f"Fetched and cached data for patient {patient_id} - {len(raw_readings)} readings")
             else:
                 st.warning("No glucose data available for this patient")
+                file_log.warning(f"No glucose data available for patient {patient_id}")
                 return
     else:
         processed_readings = st.session_state['current_patient_data']
-        file_log.debug("Using cached patient data")
+        file_log.debug(f"Using cached patient data for ID: {st.session_state.get('current_patient_id')}")
     
     st.subheader("📊 Glucose Data")
     
     selected_format = settings.get('selected_format', 'Table')
+    file_log.info(f"Displaying data in {selected_format} format")
+    
     if selected_format == "Table":
         df = DataFormatter.to_dataframe(processed_readings)
         st.dataframe(df, use_container_width=True)
@@ -481,6 +571,7 @@ def main():
         selected_charts = settings.get('selected_charts', ['line'])
         
         if selected_charts and processed_readings:
+            file_log.info(f"Generating charts: {selected_charts}")
             tabs = st.tabs([chart.title() for chart in selected_charts])
             
             for i, chart_type in enumerate(selected_charts):
@@ -493,41 +584,50 @@ def main():
                         )
                         if fig:
                             st.plotly_chart(fig, use_container_width=True)
+                            file_log.info(f"Successfully generated {chart_type} chart")
                         else:
                             st.warning(f"Could not generate {chart_type} chart")
+                            file_log.warning(f"Failed to generate {chart_type} chart")
                     except Exception as chart_error:
-                        st.warning(f"Error generating {chart_type} chart: {str(chart_error)}")
-                        file_log.error(f"Chart generation error for {chart_type}: {str(chart_error)}")
+                        error_msg = f"Error generating {chart_type} chart: {str(chart_error)}"
+                        st.warning(error_msg)
+                        file_log.error(error_msg, exc_info=True)
         elif not processed_readings:
             st.info("No data available to generate charts")
+            file_log.info("No data available for chart generation")
     
-    st.subheader("🧠 AI Data Analysis")
+    st.subheader("🧠 AI Medical Analysis")
     
     user_query = st.text_area(
-        "Enter your question about the glucose data",
+        "Your query about the glucose data",
         height=100,
         placeholder="e.g., What are the average glucose levels? Show me a chart of glucose trends..."
     )
     
-    if st.button("🔍 Analyze Data"):
+    if st.button("🔍 Execute"):
         if not user_query:
-            show_toast("Please enter a question", success=False)
+            show_toast("Enter query", success=False)
+            file_log.warning("AI analysis failed: Empty query")
             return
             
         if 'app_settings' not in st.session_state:
             show_toast("Settings not found. Please save settings first.", success=False)
+            file_log.warning("AI analysis failed: Settings not found")
             return
             
         with st.spinner(f"Analyzing data with {settings['selected_model']}..."):
+            file_log.info(f"Starting AI analysis with model: {settings['selected_model']}")
             analyzer = AIAnalyzer(settings.get('api_keys', {}))
             analysis_result = analyzer.analyze(processed_readings, user_query, settings['selected_model'])
             st.markdown("### Analysis Results")
             st.markdown(analysis_result)
+            file_log.info("AI analysis completed successfully")
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as application_error:
-        st.toast(f"Application error: {str(application_error)}", icon="❌")
-        file_log.critical(f"Unhandled application error: {str(application_error)}")
+        error_msg = f"Application error: {str(application_error)}"
+        st.toast(error_msg, icon="❌")
+        file_log.critical(error_msg, exc_info=True)
         raise
