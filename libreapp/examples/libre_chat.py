@@ -339,8 +339,8 @@ def show_toast(message: str, success: bool = True):
     st.toast(message, icon=icon)
 
 def main():
-    st.set_page_config(page_title="Libre Glucose Medical Analyzer", layout="wide")
-    st.title("🩸 Libre Glucose Medical Analyzer")
+    st.set_page_config(page_title="Libre Glucose Medical Chat", layout="wide")
+    st.title("🩸 Libre Glucose Medical Chat")
     
     file_log.info("Application started")
     
