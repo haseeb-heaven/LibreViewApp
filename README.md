@@ -1,17 +1,30 @@
-# LibreApp - Medical Technology API Library with AI Analytics
+# LibreChat - AI-Powered Glucose Monitoring Platform & SDK
 
-A professional-grade Python library for interfacing with LibreView Continuous Glucose Monitoring (CGM) systems, featuring AI-powered analytics through Google's Gemini AI. This library is designed for medical technology integration, following industry standards for reliability, security, and data handling, with advanced AI capabilities for glucose data analysis.
+A dual-purpose solution combining:
+1. An intelligent chat application for glucose monitoring analysis using multiple AI models
+2. A professional SDK for LibreView CGM system integration
+
+This platform leverages multiple AI models (Gemini, GPT-4, Claude, etc.) through LiteLLM integration for advanced glucose data analysis, while providing a robust SDK for medical technology integration. Built following industry standards for reliability, security, and medical data handling.
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python Versions](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-blue)]()
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)]()
 
-## Medical Technology Integration
+## Platform Features
 
-This library is specifically designed for medical technology integration, featuring:
+### AI Chat Application
+- **Multi-Model AI Support**: 
+  - Google's Gemini
+  - OpenAI's GPT-4/3.5
+  - Anthropic's Claude
+  - Replicate's models
+  - Cohere's models
+- **LiteLLM Integration**: Unified interface for all AI models
+- **Streamlit Interface**: Rich, interactive web application
+- **Advanced Analytics**: Real-time glucose pattern analysis
+- **Customizable Experience**: Choose your preferred AI model
 
-- **AI Analytics**: Powered by Google's Gemini AI for intelligent glucose data analysis
-- **Streamlit Interface**: Interactive web application for data visualization and analysis
+### Medical Technology SDK
 - **SOLID Principles**: Clean, modular, and maintainable code architecture
 - **Security First**: Built-in sensitive data masking and secure communication
 - **Audit Logging**: Comprehensive logging for medical compliance
@@ -170,13 +183,6 @@ glucose_data = client.get_connection_graph(connection_id)
 - Rate limiting protection
 - Audit logging
 
-### Data Handling
-- Type-safe operations
-- Input validation
-- Error handling
-- Response parsing
-- Data transformation
-
 ## Setup
 
 1. Clone the repository:
@@ -198,13 +204,21 @@ cp .env.example .env
 
 Then edit the `.env` file with your credentials:
 ```bash
-# Required credentials
+# LibreView Credentials (Required)
 LIBRE_EMAIL=your.email@example.com      # Your LibreView account email
 LIBRE_PASSWORD=your_password            # Your LibreView account password
 
-# Optional API configuration (defaults shown)
-LIBRE_VERSION=4.7                       # API version to use (default: 4.7)
-LIBRE_PRODUCT=ios                       # Product type (ios or android, default: ios)
+# AI Model API Keys (At least one required)
+GEMINI_API_KEY=your_gemini_key         # Google Gemini API key
+OPENAI_API_KEY=your_openai_key         # OpenAI API key (optional)
+ANTHROPIC_API_KEY=your_claude_key      # Anthropic Claude API key (optional)
+COHERE_API_KEY=your_cohere_key        # Cohere API key (optional)
+REPLICATE_API_KEY=your_replicate_key   # Replicate API key (optional)
+
+# Optional API Configuration
+LIBRE_VERSION=4.7                      # API version to use (default: 4.7)
+LIBRE_PRODUCT=ios                      # Product type (ios or android)
+DEFAULT_AI_MODEL=gemini-1.0-pro       # Default AI model to use
 ```
 
 4. Install dependencies:
@@ -222,20 +236,38 @@ This will install all required packages:
 
 ## Usage
 
-1. Run the main application:
+### Running the AI Chat Application
+
+1. Start the Streamlit interface:
+```bash
+streamlit run libreapp/examples/libre_chat.py
+```
+
+2. The chat application provides:
+   - Interactive AI-powered glucose analysis
+   - Multiple AI model selection
+   - Real-time data visualization
+   - Pattern recognition and insights
+   - Export capabilities for reports
+
+### Using the SDK
+
+1. For programmatic access:
 ```bash
 python main.py
 ```
 
-2. The application will:
-   - Authenticate with LibreView API
-   - Retrieve user profile and account information
-   - List all patient connections
-   - Fetch and display glucose readings for each patient
+2. The SDK provides:
+   - LibreView API integration
+   - User profile management
+   - Patient connections handling
+   - Glucose data retrieval
+   - AI analysis integration
 
-3. Logs can be found in:
-   - Console: Shows user-friendly progress and status
-   - `logs/libreview_YYYYMMDD.log`: Contains detailed debug information
+3. Logs and Monitoring:
+   - Console: Real-time progress and status
+   - `logs/libreapp_YYYYMMDD.log`: Detailed debug information
+   - AI Analysis logs: Model interactions and responses
 
 ## API Documentation
 
@@ -265,22 +297,64 @@ Note: This is a community-driven, unofficial implementation and is not affiliate
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-## Streamlit Application
+## AI Chat Application
 
-The library now includes a Streamlit-based web application for interactive glucose data analysis:
+LibreChat provides an intelligent interface for glucose monitoring analysis:
 
+### Quick Start
 ```bash
-# Run the Streamlit app
+# Run the AI Chat application
 streamlit run libreapp/examples/libre_chat.py
 ```
 
-Features:
-- Real-time glucose data visualization
-- AI-powered trend analysis using Gemini
-- Interactive data querying and analysis
-- Customizable data display options
-- Automated insights and recommendations
-- Export capabilities for reports and data
+### Features
+- **Multiple AI Models**:
+  - Switch between different AI models (Gemini, GPT-4, Claude, etc.)
+  - Compare analyses from different models
+  - Unified interface through LiteLLM
+
+- **Interactive Analysis**:
+  - Real-time glucose data visualization
+  - AI-powered trend analysis
+  - Pattern recognition
+  - Anomaly detection
+  - Predictive insights
+
+- **Customization**:
+  - Choose preferred AI model
+  - Customize analysis parameters
+  - Set personal glucose targets
+  - Configure visualization preferences
+
+- **Data Management**:
+  - Export reports and analyses
+  - Save AI conversations
+  - Download visualizations
+  - Share insights securely
+
+### AI Model Configuration
+```python
+# Example of switching AI models
+from litellm import completion
+
+# Using Gemini
+response = completion(
+    model="gemini-1.0-pro",
+    messages=[{"content": "Analyze glucose patterns"}]
+)
+
+# Using GPT-4
+response = completion(
+    model="gpt-4",
+    messages=[{"content": "Identify glucose trends"}]
+)
+
+# Using Claude
+response = completion(
+    model="anthropic/claude-2",
+    messages=[{"content": "Suggest glucose management strategies"}]
+)
+```
 
 ## Changelog
 
